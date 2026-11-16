@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Get Well Soon, My Love</title>
+<style>
+:root{--bg1:#ffe3ec;--bg2:#fff4e6;--card:#ffffffcc;--ink:#4a2433;--accent:#e8436e;--soft:#f7b6c9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#2a1220;--bg2:#1d1a2e;--card:#3a1f2fcc;--ink:#ffe8ef;--accent:#ff6f93;--soft:#7a3550}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));overflow:hidden;-webkit-user-select:none;user-select:none}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+.screen.on{display:flex}
+.card{background:var(--card);backdrop-filter:blur(6px);border-radius:24px;padding:26px 22px;max-width:420px;width:100%;box-shadow:0 10px 30px #e8436e33}
+h1{margin:0 0 6px;font-size:1.7rem}
+p{line-height:1.5;margin:8px 0}
+input{width:100%;padding:12px 14px;margin:6px 0;border-radius:14px;border:2px solid var(--soft);background:transparent;color:var(--ink);font-size:1rem;text-align:center}
+button{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:13px 28px;font-size:1.05rem;font-weight:600;margin-top:12px;cursor:pointer;box-shadow:0 6px 14px #e8436e55}
+button:active{transform:scale(.96)}
+.big{font-size:3rem}
+#hud{position:absolute;top:calc(env(safe-area-inset-top,0px) + 10px);left:14px;right:14px;z-index:5}
+#hud .lbl{display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;margin-bottom:4px}
+#bar{height:16px;border-radius:99px;background:var(--soft);overflow:hidden}
+#fill{height:100%;width:0;background:linear-gradient(90deg,#ff8fab,var(--accent));transition:width .3s}
+#field{position:absolute;inset:0;overflow:hidden}
+.it{position:absolute;top:-60px;font-size:2.6rem;cursor:pointer;animation:fall linear forwards;touch-action:manipulation;padding:6px}
+@keyframes fall{to{transform:translateY(calc(100vh + 120px))}}
+.pop{animation:pop .4s ease-out forwards!important}
+@keyframes pop{0%{transform:scale(1)}100%{transform:scale(2.2);opacity:0}}
+.float{position:absolute;font-weight:700;color:var(--accent);pointer-events:none;animation:up .9s forwards;z-index:6}
+@keyframes up{to{transform:translateY(-60px);opacity:0}}
+#tip{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:0;right:0;text-align:center;font-size:.9rem;opacity:.8;pointer-events:none}
+.coupons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.cp{min-height:76px;border-radius:16px;border:2px dashed var(--accent);display:flex;align-items:center;justify-content:center;padding:8px;font-size:.88rem;cursor:pointer;background:transparent;color:var(--ink);font-weight:600;margin:0;box-shadow:none}
+.cp.open{background:var(--accent);color:#fff;border-style:solid}
+.conf{position:fixed;top:-30px;font-size:1.6rem;animation:fall linear forwards;pointer-events:none;z-index:20}
+#win{overflow-y:auto;justify-content:flex-start;padding-top:30px}
+</style>
+</head>
+<body>
+
+<div class="screen on" id="start">
+  <div class="card">
+    <div class="big">💌</div>
+    <h1>Get Well Soon, My Love</h1>
+    <p><b>For Ankita</b>, from Nukul ❤️</p>
+    <p>A tiny game made with all my heart, to help you feel better.</p>
+    <button id="go">Start 💕</button>
+  </div>
+</div>
+
+<div class="screen" id="play">
+  <div id="hud">
+    <div class="lbl"><span id="who">Feeling better</span><span id="pct">0%</span></div>
+    <div id="bar"><div id="fill"></div></div>
+  </div>
+  <div id="field"></div>
+  <div id="tip">Tap ❤️ 🍵 🧸 🤗 to collect them · Pop the 🤧 germs before they land!</div>
+</div>
+
+<div class="screen" id="win">
+  <div class="card">
+    <div class="big">🥰</div>
+    <h1 id="wt">You did it!</h1>
+    <p id="wm"></p>
+    <p><b>💍 Just a few more months until forever. 💍</b></p>
+    <p style="margin-top:14px">Your Get-Well Love Coupons — tap to open:</p>
+    <div class="coupons" id="cps"></div>
+    <button id="again">Play again 🔁</button>
+  </div>
+</div>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+var her="Ankita",him="Nukul",meter=0,run=false,spawnT=null;
+var good=[["❤️",6],["🍵",9],["🧸",7],["🤗",9],["🌸",5],["💊",8]];
+var cheer=["Sending you a hug! 🤗","Feel better soon! 💕","You’re my favourite person 💖","Rest, my queen 👑","Warm blankets incoming 🛌","I love you more! 😘"];
+var coupons=["🍲 One bowl of hot soup, made by me","💆 A long head massage","🎬 Movie night, your choice, no arguments","🍦 Ice cream date once you’re better","🛌 Breakfast in bed","💬 One whole day of me listening to anything you say"];
+
+function setMeter(v){meter=Math.max(0,Math.min(100,v));$("fill").style.width=meter+"%";$("pct").textContent=Math.round(meter)+"%";if(meter>=100&&run)win()}
+function floatTxt(x,y,t){var f=document.createElement("div");f.className="float";f.textContent=t;f.style.left=Math.max(8,Math.min(x-30,window.innerWidth-150))+"px";f.style.top=y+"px";$("play").appendChild(f);setTimeout(function(){f.remove()},900)}
+
+function spawn(){
+  if(!run)return;
+  var el=document.createElement("div");
+  var germ=Math.random()<0.28;
+  var g=good[Math.floor(Math.random()*good.length)];
+  el.className="it";el.textContent=germ?"🤧":g[0];
+  el.style.left=(Math.random()*(window.innerWidth-70))+"px";
+  el.style.animationDuration=(4.2+Math.random()*2.6)+"s";
+  el.dataset.germ=germ?1:0;el.dataset.v=g[1];
+  var hit=function(e){
+    e.preventDefault();if(el.classList.contains("pop")||!run)return;
+    el.classList.add("pop");el.dataset.hit=1;
+    var r=el.getBoundingClientRect();
+    if(germ){setMeter(meter+3);floatTxt(r.left,r.top,"Germ gone! +3")}
+    else{setMeter(meter+(+el.dataset.v));floatTxt(r.left,r.top,cheer[Math.floor(Math.random()*cheer.length)])}
+    setTimeout(function(){el.remove()},400);
+  };
+  el.addEventListener("pointerdown",hit);
+  el.addEventListener("animationend",function(){
+    if(!el.dataset.hit&&germ&&run)setMeter(meter-5);
+    el.remove();
+  });
+  $("field").appendChild(el);
+}
+
+function show(id){["start","play","win"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
+
+function start(){
+  
+  $("who").textContent=her+" is feeling better…";
+  $("field").innerHTML="";setMeter(0);run=true;show("play");
+  clearInterval(spawnT);spawnT=setInterval(spawn,650);
+}
+
+function win(){
+  run=false;clearInterval(spawnT);$("field").innerHTML="";
+  $("wt").textContent="You did it, "+her+"! 🎉";
+  $("wm").textContent="Every germ is gone and your heart is 100% full. You are the strongest, sweetest, most beautiful girl I know, and I can’t wait to marry you. Rest, drink warm water, and let me take care of you. Forever yours, "+him+" ❤️";
+  var box=$("cps");box.innerHTML="";
+  coupons.forEach(function(c){
+    var b=document.createElement("button");b.className="cp";b.textContent="🎁 Tap me";
+    b.onclick=function(){b.textContent=c;b.classList.add("open")};
+    box.appendChild(b);
+  });
+  show("win");$("win").scrollTop=0;confetti();
+}
+
+function confetti(){
+  var em=["💖","💍","✨","🌹","💕","🎉"];
+  for(var i=0;i<30;i++){(function(i){setTimeout(function(){
+    var c=document.createElement("div");c.className="conf";
+    c.textContent=em[i%em.length];c.style.left=Math.random()*95+"vw";
+    c.style.animationDuration=(3+Math.random()*3)+"s";
+    document.body.appendChild(c);setTimeout(function(){c.remove()},6500);
+  },i*120)})(i)}
+}
+
+$("go").onclick=start;
+$("again").onclick=function(){show("start")};
+</script>
+</body>
+</html>
